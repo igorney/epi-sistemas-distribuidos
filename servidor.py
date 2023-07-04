@@ -1,7 +1,9 @@
 import threading
 import socket
+import random
 
 from mensagem import Mensagem
+
 
 class Servidor:
     def __init__(self, ip, porta, ip_lider, porta_lider):
@@ -24,7 +26,8 @@ class Servidor:
 
         while True:
             cliente_socket, cliente_endereco = server_socket.accept()
-            threading.Thread(target=self.atender_requisicao, args=(cliente_socket,)).start()
+            threading.Thread(target=self.atender_requisicao,
+                             args=(cliente_socket,)).start()
 
     def atender_requisicao(self, cliente_socket):
         mensagem_str = cliente_socket.recv(1024).decode()
@@ -67,11 +70,13 @@ class Servidor:
         self.replicar_put(mensagem)
 
         response = Mensagem("PUT_OK", key, value, self.timestamp)
-        self.enviar_mensagem(mensagem.ip_origem, mensagem.porta_origem, response)
+        self.enviar_mensagem(mensagem.ip_origem,
+                             mensagem.porta_origem, response)
 
     def replicar_put(self, mensagem):
         for ip, porta in self.obter_enderecos_outros_servidores():
-            mensagem_replication = Mensagem("REPLICATION", mensagem.key, mensagem.value, mensagem.timestamp)
+            mensagem_replication = Mensagem(
+                "REPLICATION", mensagem.key, mensagem.value, mensagem.timestamp)
             self.enviar_mensagem(ip, porta, mensagem_replication)
 
     def processar_replication(self, mensagem):
@@ -90,7 +95,8 @@ class Servidor:
         timestamp = mensagem.timestamp
 
         response = Mensagem("PUT_OK", key, value, timestamp)
-        self.enviar_mensagem(mensagem.ip_origem, mensagem.porta_origem, response)
+        self.enviar_mensagem(mensagem.ip_origem,
+                             mensagem.porta_origem, response)
 
     def processar_get(self, mensagem):
         key = mensagem.key
@@ -104,7 +110,8 @@ class Servidor:
             response = Mensagem("GET", key, "Key not found", None)
             response.timestamp_cliente = timestamp_cliente
 
-        self.enviar_mensagem(mensagem.ip_origem, mensagem.porta_origem, response)
+        self.enviar_mensagem(mensagem.ip_origem,
+                             mensagem.porta_origem, response)
 
     def obter_enderecos_outros_servidores(self):
         enderecos = [
@@ -113,3 +120,24 @@ class Servidor:
         ]
         enderecos.remove((self.ip, self.porta))
         return enderecos
+
+
+def main():
+    ip_lider = "127.0.0.1"
+    porta_lider = 10097
+
+    servers = []
+
+    for port in range(10097, 10100):
+        server = Servidor("127.0.0.1", port, ip_lider, porta_lider)
+        servers.append(server)
+
+    random.shuffle(servers)
+    servers[0].lider = True
+
+    for server in servers:
+        server.iniciar()
+
+
+if __name__ == "__main__":
+    main()

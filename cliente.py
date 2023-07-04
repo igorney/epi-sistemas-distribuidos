@@ -1,5 +1,8 @@
 import socket
 
+from mensagem import Mensagem
+
+
 class Cliente:
     def __init__(self, ip_servidor, porta_servidor):
         self.ip_servidor = ip_servidor
@@ -37,13 +40,15 @@ class Cliente:
         key = input("Digite a chave: ")
         value = input("Digite o valor: ")
 
-        mensagem = Mensagem("PUT", self.ip_servidor, self.porta_servidor, key=key, value=value)
+        mensagem = Mensagem("PUT", self.ip_servidor,
+                            self.porta_servidor, key=key, value=value)
         self.enviar_mensagem(mensagem)
 
     def enviar_requisicao_get(self):
         key = input("Digite a chave: ")
 
-        mensagem = Mensagem("GET", self.ip_servidor, self.porta_servidor, key=key)
+        mensagem = Mensagem("GET", self.ip_servidor,
+                            self.porta_servidor, key=key)
         self.enviar_mensagem(mensagem)
 
     def enviar_mensagem(self, mensagem):
@@ -55,4 +60,3 @@ class Cliente:
         print(response)
 
         client_socket.close()
-        
