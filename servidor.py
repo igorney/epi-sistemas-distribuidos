@@ -37,7 +37,7 @@ class Servidor:
             if self.lider:
                 self.processar_put(mensagem)
             else:
-                self.encaminhar_put(mensagem)
+                return # self.encaminhar_put(mensagem)
         elif mensagem.tipo == "REPLICATION":
             self.processar_replication(mensagem)
         elif mensagem.tipo == "REPLICATION_OK":

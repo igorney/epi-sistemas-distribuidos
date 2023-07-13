@@ -40,16 +40,16 @@ class Cliente:
         key = input("Digite a chave: ")
         value = input("Digite o valor: ")
 
-        mensagem = Mensagem("PUT", self.ip_servidor,
-                            self.porta_servidor, key=key, value=value)
-        self.enviar_mensagem(mensagem)
+        # mensagem = Mensagem("PUT", self.ip_servidor,
+        #                     self.porta_servidor, key=key, value=value)
+        # self.enviar_mensagem(mensagem)
 
     def enviar_requisicao_get(self):
         key = input("Digite a chave: ")
 
-        mensagem = Mensagem("GET", self.ip_servidor,
-                            self.porta_servidor, key=key)
-        self.enviar_mensagem(mensagem)
+        # mensagem = Mensagem("GET", self.ip_servidor,
+        #                     self.porta_servidor, key=key)
+        # self.enviar_mensagem(mensagem)
 
     def enviar_mensagem(self, mensagem):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
