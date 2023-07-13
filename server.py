@@ -1,10 +1,18 @@
 import socket
 
 
+# Estrutura de dados para armazenar as informações dos peers e seus arquivos
+peer_data = {}
+
+
 # Função para tratar a requisição JOIN
-def handle_join_request(peer_info):
+def handle_join_request(peer_info, folder_path, files):
     # Adicione o peer e suas informações à estrutura de dados do servidor
-    # ...
+    peer_data[peer_info] = {
+        'folder_path': folder_path,
+        'files': files
+    }
+
     response = "JOIN_OK"
     return response
 
@@ -12,15 +20,22 @@ def handle_join_request(peer_info):
 # Função para tratar a requisição SEARCH
 def handle_search_request(filename):
     # Verifique quais peers possuem o arquivo solicitado
-    # ...
-    response = []  # Lista vazia ou com as informações dos peers
+    peers_with_file = []
+    for peer_info, peer_info_data in peer_data.items():
+        files = peer_info_data['files']
+        folder_path = peer_info_data['folder_path']
+        if filename in files:
+            peers_with_file.append(peer_info)
+
+    response = peers_with_file
     return response
 
 
 # Função para tratar a requisição UPDATE
 def handle_update_request(peer_info, filename):
     # Atualize as informações do peer com o arquivo baixado
-    # ...
+    peer_data[peer_info]['files'].append(filename)
+
     response = "UPDATE_OK"
     return response
 
@@ -50,11 +65,15 @@ while True:
 
     # Trate a requisição de acordo com o tipo
     if request.startswith("JOIN"):
-        peer_info = request.split(":")[1]  # Extrai as informações do peer
-        response = handle_join_request(peer_info)
+        params = request.split(";")
+        peer_info = params[1]  # Extrai as informações do peer
+        folder_path = params[3]  # Extrai a pasta do peer
+        files = params[4:]  # Extrai a lista de arquivos do peer
+        response = handle_join_request(peer_info, folder_path, files)
     elif request.startswith("SEARCH"):
         filename = request.split(":")[1]  # Extrai o nome do arquivo
         response = handle_search_request(filename)
+        print("Peer", client_address[0], "solicitou arquivo", filename)
     elif request.startswith("UPDATE"):
         params = request.split(":")
         peer_info = params[1]  # Extrai as informações do peer
@@ -62,7 +81,7 @@ while True:
         response = handle_update_request(peer_info, filename)
 
     # Envie a resposta de volta ao peer
-    client_socket.send(response.encode())
+    client_socket.send(str(response).encode())
 
     # Feche a conexão
     client_socket.close()

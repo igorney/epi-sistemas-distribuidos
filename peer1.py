@@ -1,87 +1,107 @@
 import socket
+import os
 
+# Endereço e porta do servidor
+server_address = ('127.0.0.1', 1099)
 
-# Função para enviar uma requisição ao servidor
-def send_request(server_address, request):
-    # Crie um socket TCP
+# Função para enviar requisições ao servidor e receber as respostas
+def send_request(address, request):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Conecte-se ao servidor
-    client_socket.connect(server_address)
-
-    # Envie a requisição ao servidor
+    client_socket.connect(address)
     client_socket.send(request.encode())
-
-    # Receba a resposta do servidor
     response = client_socket.recv(1024).decode()
-
-    # Feche a conexão
     client_socket.close()
-
     return response
 
+# Função para lidar com requisições de DOWNLOAD
+def handle_download_request(peer_address, file_name, destination_folder):
 
-# Função para tratar a requisição DOWNLOAD
-def handle_download_request(peer_info, filename):
-    # Envie uma requisição de DOWNLOAD ao peer
-    # ...
+    pass
 
-    # Receba o arquivo do peer
-    # ...
+# Obtenha o endereço IP do peer automaticamente
+host = socket.gethostbyname(socket.gethostname())
 
-    # Armazene o arquivo na pasta específica do peer
-    # ...
-
-    response = "DOWNLOAD_OK"
-    return response
-
-
-# Configuração do peer
-host = "127.0.0.1"  # Endereço IP do peer
-port = 8000  # Porta do peer
-server_address = ("127.0.0.1", 1099)  # Endereço IP e porta do servidor
-
-# Crie um socket TCP
+# Crie o socket do peer
 peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-# Associe o socket ao endereço e porta do peer
-peer_socket.bind((host, port))
-
-# Espere por conexões
+peer_socket.bind((host, 0))  # O sistema operacional irá atribuir uma porta disponível automaticamente
+peer_port = peer_socket.getsockname()[1]  # Obtenha a porta atribuída pelo sistema
 peer_socket.listen(1)
-print("Peer aguardando conexões...")
+print("Peer iniciado e aguardando conexões...")
+print("Endereço IP do peer:", host)
+print("Porta do peer:", peer_port)
+
+# Variáveis para armazenar o status de conexão do peer com o servidor e informações do peer
+joined = False
+peer_info = {}
 
 # Loop principal do peer
 while True:
-    # Aceite uma nova conexão
-    client_socket, client_address = peer_socket.accept()
-    print("Conexão estabelecida com:", client_address)
+    # Menu interativo
+    print("\nMENU INTERATIVO")
+    print("1. JOIN")
+    print("2. SEARCH")
+    print("3. DOWNLOAD")
+    print("4. Sair")
 
-    # Receba a requisição do peer
-    request = client_socket.recv(1024).decode()
+    option = input("Escolha uma opção: ")
 
-    # Trate a requisição de acordo com o tipo
-    if request.startswith("JOIN_OK"):
-        # Exemplo de tratamento da resposta JOIN_OK
-        peer_info = "127.0.0.1:8776"  # Informações do peer
-        files = ["aula1.mp4", "aula2.mp4"]  # Arquivos do peer
-        print("Sou peer", peer_info, "com arquivos", " ".join(files))
-    elif request.startswith("peers com arquivo solicitado"):
-        # Exemplo de tratamento da resposta SEARCH
-        peer_list = request.split(":")[1].split(",")  # Lista de peers com o arquivo solicitado
-        print("Peers com arquivo solicitado:", " ".join(peer_list))
-    elif request.startswith("Arquivo"):
-        # Exemplo de tratamento da resposta de arquivo baixado
-        filename = request.split()[1]  # Nome do arquivo baixado
-        folder = "nome_da_pasta"  # Pasta onde o arquivo foi armazenado
-        print("Arquivo", filename, "baixado com sucesso na pasta", folder)
+    if option == "1":
+        if not joined:
+            # Capturar informações do peer
+            peer_info["IP"] = host
+            peer_info["Porta"] = peer_port
+            peer_info["Pasta"] = input("Digite o caminho completo da pasta onde se encontram os arquivos: ")
 
-    # Trate outras requisições do peer, como DOWNLOAD
-    # ...
+            # Verificar se a pasta existe
+            if not os.path.isdir(peer_info["Pasta"]):
+                print("Pasta inválida.")
+                continue
 
-    # Envie uma resposta de volta ao peer
-    response = "OK"
-    client_socket.send(response.encode())
+            # Listar os arquivos na pasta
+            files = os.listdir(peer_info["Pasta"])
+            peer_info["Arquivos"] = files
 
-    # Feche a conexão
-    client_socket.close()
+            # Conectar-se ao servidor somente se ainda não tiver se juntado
+            join_request = f"JOIN;{peer_info['IP']};{peer_info['Porta']};{''.join(peer_info['Pasta'])};{','.join(peer_info['Arquivos'])}"
+            response = send_request(server_address, join_request)
+
+            if response == "JOIN_OK":
+                # Tratamento da resposta JOIN_OK
+                print("Sou peer", peer_info["IP"] + ":" + str(peer_info["Porta"]), "com arquivos", " ".join(peer_info["Arquivos"]))
+                joined = True
+            else:
+                print("Não foi possível se juntar ao servidor.")
+
+    elif option == "2":
+        # Enviar uma requisição de SEARCH ao servidor
+        file_name = input("Digite o nome do arquivo: ")
+        search_request = "SEARCH:" + file_name
+        response = send_request(server_address, search_request)
+
+        if response.startswith("peers com arquivo solicitado"):
+            # Tratamento da resposta SEARCH
+            peer_list_str = response.split(":")[1]
+            peer_list = peer_list_str.split(",")
+            print("Peers com arquivo solicitado:", " ".join(peer_list))
+
+    elif option == "3":
+        if joined:
+            # Enviar uma requisição de DOWNLOAD a um peer escolhido
+            peer_address = input("Digite o endereço IP do peer: ")
+            file_name = input("Digite o nome do arquivo: ")
+
+            download_request = "DOWNLOAD:" + file_name
+            peer_address = (peer_address, peer_port)  # Usamos a porta do próprio peer
+            response = handle_download_request(peer_address, file_name, peer_info["Pasta"])
+
+            if response == "DOWNLOAD_OK":
+                print("Download do arquivo", file_name, "concluído com sucesso.")
+        else:
+            print("Você precisa se juntar ao servidor primeiro.")
+
+    elif option == "4":
+        print("Saindo...")
+        break
+
+# Fecha o socket do peer
+peer_socket.close()
