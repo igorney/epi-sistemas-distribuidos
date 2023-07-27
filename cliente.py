@@ -1,12 +1,13 @@
 import socket
+import random
+import time
 
 from mensagem import Mensagem
 
-
 class Cliente:
-    def __init__(self, ip_servidor, porta_servidor):
-        self.ip_servidor = ip_servidor
-        self.porta_servidor = porta_servidor
+    def __init__(self):
+        self.ip_servidor = None
+        self.porta_servidor = None
 
     def iniciar(self):
         self.exibir_menu()
@@ -33,6 +34,7 @@ class Cliente:
                 print("Opção inválida. Tente novamente.")
 
     def inicializar_cliente(self):
+        time.sleep(2)
         mensagem = Mensagem("INIT", self.ip_servidor, self.porta_servidor)
         self.enviar_mensagem(mensagem)
 
@@ -40,16 +42,16 @@ class Cliente:
         key = input("Digite a chave: ")
         value = input("Digite o valor: ")
 
-        # mensagem = Mensagem("PUT", self.ip_servidor,
-        #                     self.porta_servidor, key=key, value=value)
-        # self.enviar_mensagem(mensagem)
+        mensagem = Mensagem("PUT", self.ip_servidor,
+                            self.porta_servidor, key=key, value=value)
+        self.enviar_mensagem(mensagem)
 
     def enviar_requisicao_get(self):
         key = input("Digite a chave: ")
 
-        # mensagem = Mensagem("GET", self.ip_servidor,
-        #                     self.porta_servidor, key=key)
-        # self.enviar_mensagem(mensagem)
+        mensagem = Mensagem("GET", self.ip_servidor,
+                            self.porta_servidor, key=key)
+        self.enviar_mensagem(mensagem)
 
     def enviar_mensagem(self, mensagem):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -60,3 +62,23 @@ class Cliente:
         print(response)
 
         client_socket.close()
+
+def iniciar_clientes():
+    clientes = []
+    portas_disponiveis = list(range(10100, 10200))
+
+    for _ in range(5):
+        port = random.choice(portas_disponiveis)
+        portas_disponiveis.remove(port)
+
+        cliente = Cliente()
+        cliente.ip_servidor = "127.0.0.1"
+        cliente.porta_servidor = port
+        clientes.append(cliente)
+
+    # Iniciar os clientes
+    for cliente in clientes:
+        cliente.iniciar()
+
+if __name__ == "__main__":
+    iniciar_clientes()

@@ -4,7 +4,6 @@ import random
 
 from mensagem import Mensagem
 
-
 class Servidor:
     def __init__(self, ip, porta, ip_lider, porta_lider):
         self.ip = ip
@@ -16,13 +15,14 @@ class Servidor:
         self.lider = False
 
     def iniciar(self):
-        self.registrar_no_lider()
+        if self.lider:
+            self.registrar_no_lider()
 
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.bind((self.ip, self.porta))
         server_socket.listen(5)
 
-        print(f"Servidor {self.ip}:{self.porta} iniciado.")
+        print(f"Servidor {self.ip}:{self.porta} iniciado. Líder: {self.lider}")
 
         while True:
             cliente_socket, cliente_endereco = server_socket.accept()
@@ -37,7 +37,7 @@ class Servidor:
             if self.lider:
                 self.processar_put(mensagem)
             else:
-                return # self.encaminhar_put(mensagem)
+                self.encaminhar_put(mensagem)
         elif mensagem.tipo == "REPLICATION":
             self.processar_replication(mensagem)
         elif mensagem.tipo == "REPLICATION_OK":
@@ -122,22 +122,24 @@ class Servidor:
         return enderecos
 
 
-def main():
-    ip_lider = "127.0.0.1"
-    porta_lider = 10097
+def iniciar_servidores():
+    servidores = []
+    portas_disponiveis = list(range(10097, 10100))
 
-    servers = []
+    for _ in range(3):
+        port = random.choice(portas_disponiveis)
+        portas_disponiveis.remove(port)
 
-    for port in range(10097, 10100):
-        server = Servidor("127.0.0.1", port, ip_lider, porta_lider)
-        servers.append(server)
+        servidor = Servidor("127.0.0.1", port, "127.0.0.1", 10097)
+        servidores.append(servidor)
 
-    random.shuffle(servers)
-    servers[0].lider = True
+    # Definir o líder aleatoriamente
+    lider = random.choice(servidores)
+    lider.lider = True
 
-    for server in servers:
+    # Iniciar os servidores
+    for server in servidores:
         server.iniciar()
 
-
 if __name__ == "__main__":
-    main()
+    iniciar_servidores()
